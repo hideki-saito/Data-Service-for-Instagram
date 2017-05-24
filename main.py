@@ -1,8 +1,7 @@
-import json
+from pymongo import MongoClient
 
 from config import *
-from InstagramAPI import Instagram
-
+from instagram_private_api import Client
 
 def getAttribute(obj):
     output = {}
@@ -21,65 +20,63 @@ class Insgram_DataService():
     def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.instagram = Instagram(username, password, IGDataPath="/tmp/account_%s" % username)
-        self.instagram.login()
-        self.userId = self.instagram.username_id
+        self.client = Client(username, password)
+        self.user_id = self.client.username_info(username)['user']['pk']
+        client = MongoClient(host, port)
+        self.db = client.instagram
 
     def get_followers(self):
-        followers = []
+        follower_collection = self.db.followers
+
         max_id = ""
         while True:
-            follow_response = self.instagram.getUserFollowers(self.userId, max_id)
-            for follower in follow_response.followers:
-                followers.append(getAttribute(follower))
+            follower_response = self.client.user_followers(self.user_id, max_id=max_id)
+            for follower in follower_response['users']:
+                follower_collection.update({'pk': follower['pk']}, {"$set": follower}, upsert=True)
 
-            max_id = follow_response.next_max_id
+            max_id = follower_response.get('next_max_id')
             if max_id is None:
                 break
-
-        return followers
 
     def get_followings(self):
-        followings = []
+        following_collection  = self.db.followings
+
         max_id = ""
         while True:
-            following_response = self.instagram.getUserFollowings(self.userId, max_id)
-            for following in following_response.followings:
-                followings.append(getAttribute(following))
+            following_response = self.client.user_following(self.user_id, max_id=max_id)
+            for following in following_response['users']:
+                following_collection.update({'pk': following['pk']}, {"$set": following}, upsert=True)
 
-            max_id = following_response.next_max_id
+            max_id = following_response.get('next_max_id')
             if max_id is None:
                 break
 
-        return followings
+    def retrive_posts(self, user_id):
+        print (user_id)
+        post_collection = self.db.posts
 
-    def retrive_posts(self, follower_id):
-        posts = []
         max_id = ""
         while True:
-            post_response = self.instagram.getUserFeed(follower_id, max_id)
-            for post in post_response.items:
-                posts.append(getAttribute(post))
+            post_response = self.client.user_feed(user_id, max_id=max_id)
+            for post in post_response['items']:
+                post_collection.update({'pk': post['pk']}, {"$set": post}, upsert=True)
 
-            max_id = post_response.next_max_id
+            max_id = post_response.get('next_max_id')
             if max_id is None:
                 break
-
-        return posts
 
     def retrive_comments(self, media_id):
-        comments = []
+        comment_collection = self.db.comments
+
         max_id = ""
         while True:
-            comment_response = self.instagram.getMediaComments(media_id, max_id)
-            for comment in comment_response.comments:
-                comments.append(getAttribute(comment))
+            comment_response = self.client.media_comments(media_id, max_id=max_id)
+            for comment in comment_response['comments']:
+                comment_collection.update({'pk': comment['pk']}, {"$set": comment}, upsert=True)
 
-            max_id = comment_response.next_max_id
+            max_id = comment_response.get('next_max_id')
             if max_id is None:
                 break
-
-        return comments
 
 
 if __name__ == "__main__":
@@ -88,11 +85,18 @@ if __name__ == "__main__":
 
     service = Insgram_DataService(username, password)
 
-    followers = service.get_followers()
-    followings = service.get_followings()
-    # print (json.dumps(followings, indent=2))
-    posts = service.retrive_posts(service.userId)
-    # print (json.dumps(posts, indent=2))
+    service.get_followers()
+    service.get_followings()
 
-    comments = service.retrive_comments('1507131452641371245')
-    print(json.dumps(comments, indent=2))
+    followerIds = [item['pk'] for item in list(service.db.followers.find({}, {'pk': 1}))]
+    print (followerIds)
+    for followerId in followerIds:
+        print (followerId)
+        service.retrive_posts(followerId)
+
+
+    mediaIds = [item['pk'] for item in list(service.db.posts.find({}, {'pk':1}))]
+    for mediaId in mediaIds:
+        service.retrive_comments(mediaId)
+
+
