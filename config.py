@@ -1,5 +1,5 @@
-username = "saito_hideki.1127"
-password = "Instagram1989"
+username = "username"
+password = "password"
 
 host = "localhost"
 port = 27017
