@@ -52,7 +52,6 @@ class Insgram_DataService():
                 break
 
     def retrive_posts(self, user_id):
-        print (user_id)
         post_collection = self.db.posts
 
         max_id = ""
@@ -80,8 +79,8 @@ class Insgram_DataService():
 
 
 if __name__ == "__main__":
-    username = username
-    password = password
+    username = username1
+    password = password1
 
     service = Insgram_DataService(username, password)
 
@@ -91,12 +90,19 @@ if __name__ == "__main__":
     followerIds = [item['pk'] for item in list(service.db.followers.find({}, {'pk': 1}))]
     print (followerIds)
     for followerId in followerIds:
-        print (followerId)
-        service.retrive_posts(followerId)
-
+        print ('posts', followerId)
+        try:
+            service.retrive_posts(followerId)
+        except Exception as ex:
+            print (service.db.followers.find_one({'pk': followerId})['username'])
+            pass
 
     mediaIds = [item['pk'] for item in list(service.db.posts.find({}, {'pk':1}))]
     for mediaId in mediaIds:
-        service.retrive_comments(mediaId)
+        print ('comment', mediaId)
+        try:
+            service.retrive_comments(mediaId)
+        except Exception as ex:
+            pass
 
 
