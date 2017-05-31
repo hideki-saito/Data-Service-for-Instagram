@@ -1,3 +1,6 @@
+import sys
+import logging
+from datetime import datetime, timedelta
 from pymongo import MongoClient
 
 from config import *
@@ -56,9 +59,12 @@ class Insgram_DataService():
 
         max_id = ""
         while True:
-            post_response = self.client.user_feed(user_id, max_id=max_id)
+            post_response = self.client.user_feed(user_id, max_id=max_id, min_timestamp=min_timestamp)
+            logger.info(post_response)
             for post in post_response['items']:
+                logger.info('postId: %d' %post['pk'])
                 post_collection.update({'pk': post['pk']}, {"$set": post}, upsert=True)
+                self.retrive_comments(post['pk'])
 
             max_id = post_response.get('next_max_id')
             if max_id is None:
@@ -79,30 +85,50 @@ class Insgram_DataService():
 
 
 if __name__ == "__main__":
-    username = username1
-    password = password1
+
+    if len(sys.argv)>1:
+        min_timestamp = int((datetime.utcnow() - timedelta(minutes=int(sys.argv[1]))).timestamp())
+
+    else:
+        min_timestamp = ""
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    username = username
+    password = password
 
     service = Insgram_DataService(username, password)
 
     service.get_followers()
     service.get_followings()
 
-    followerIds = [item['pk'] for item in list(service.db.followers.find({}, {'pk': 1}))]
-    print (followerIds)
+    logger.info("Done getting followers and followings\n")
+
+    logger.info("Getting posts of followers")
+    followerIds = [item['pk'] for item in list(service.db.followings.find({}, {'pk': 1}))]
     for followerId in followerIds:
-        print ('posts', followerId)
+        logger.info("\n")
+        logger.info('followerId: %d\n' %followerId)
+
         try:
             service.retrive_posts(followerId)
         except Exception as ex:
-            print (service.db.followers.find_one({'pk': followerId})['username'])
+            # print (service.db.followers.find_one({'pk': followerId})['username'])
             pass
 
-    mediaIds = [item['pk'] for item in list(service.db.posts.find({}, {'pk':1}))]
-    for mediaId in mediaIds:
-        print ('comment', mediaId)
-        try:
-            service.retrive_comments(mediaId)
-        except Exception as ex:
-            pass
+    # mediaIds = [item['pk'] for item in list(service.db.posts.find({}, {'pk':1}))]
+    # for mediaId in mediaIds:
+    #     print ('comment', mediaId)
+    #     try:
+    #         service.retrive_comments(mediaId)
+    #     except Exception as ex:
+    #         pass
 
 
