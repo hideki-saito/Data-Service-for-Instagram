@@ -187,7 +187,7 @@ if __name__ == "__main__":
     logger.info("Done getting followers and followings\n")
 
     logger.info("Getting posts of followers")
-    followerIds = [item['pk'] for item in list(service.db.followings.find({}, {'pk': 1}))]
+    followerIds = [item['pk'] for item in list(service.db.followers.find({}, {'pk': 1}))]
     for followerId in followerIds:
         logger.info("\n")
         logger.info('followerId: %d\n' %followerId)
