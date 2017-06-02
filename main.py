@@ -52,8 +52,13 @@ def getAttribute(obj):
 
     return output
 
-class Insgram_DataService():
+class Instagram_DataService():
+    '''Main class of the project'''
     def __init__(self, username, password):
+        '''
+        :param username: Instagram Login Username
+        :param password: Instagram Login Password
+        '''
         device_id = None
         try:
             settings_file = settings_file_path
@@ -96,14 +101,14 @@ class Insgram_DataService():
             print('Unexpected Exception: {0!s}'.format(e))
             exit(99)
 
-        # self.username = username
-        # self.password = password
-        # self.client = Client(username, password)
         self.user_id = self.client.username_info(username)['user']['pk']
         client = MongoClient(host, port)
         self.db = client.instagram
 
     def get_followers(self):
+        '''
+        get info per follower as a json format and store into followers collection of mongodb.
+        '''
         follower_collection = self.db.followers
 
         max_id = ""
@@ -117,6 +122,10 @@ class Insgram_DataService():
                 break
 
     def get_followings(self):
+        '''
+            get info per following as a json format and store into followings collection of mongodb.
+        '''
+
         following_collection  = self.db.followings
 
         max_id = ""
@@ -130,6 +139,13 @@ class Insgram_DataService():
                 break
 
     def retrive_posts(self, user_id):
+        '''
+        :param user_id: pk of user in instagram
+
+         get posts as a json format and store into posts collection of mongodb. And then for every posts, get comments
+         and store into comments collection.
+
+        '''
         post_collection = self.db.posts
 
         max_id = ""
@@ -146,6 +162,10 @@ class Insgram_DataService():
                 break
 
     def retrive_comments(self, media_id):
+        '''
+        :param media_id: pk of post in instagram
+        get comments and store into comments collection.
+        '''
         comment_collection = self.db.comments
 
         max_id = ""
@@ -158,52 +178,47 @@ class Insgram_DataService():
             if max_id is None:
                 break
 
-
 if __name__ == "__main__":
-
+    # Calculate unix timestamp x minutes before current time.
     if len(sys.argv)>1:
         min_timestamp = int((datetime.utcnow() - timedelta(minutes=int(sys.argv[1]))).timestamp())
-
     else:
         min_timestamp = ""
 
+    # Making logger cutomized
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
+    # Get username and password from config.py
     username = username
     password = password
 
-    service = Insgram_DataService(username, password)
+    # Generate Instagram_DataService object with above username and password
+    service = Instagram_DataService(username, password)
 
+    # Get followers and follwings from instagram and store into mogodb.
     service.get_followers()
     service.get_followings()
 
     logger.info("Done getting followers and followings\n")
-
     logger.info("Getting posts of followers")
+
+    # Get followerIds from mongodb and fetch posts and comments for these
     followerIds = [item['pk'] for item in list(service.db.followers.find({}, {'pk': 1}))]
     for followerId in followerIds:
+
         logger.info("\n")
         logger.info('followerId: %d\n' %followerId)
 
         try:
             service.retrive_posts(followerId)
         except Exception as ex:
-            # print (service.db.followers.find_one({'pk': followerId})['username'])
             pass
 
-    # mediaIds = [item['pk'] for item in list(service.db.posts.find({}, {'pk':1}))]
-    # for mediaId in mediaIds:
-    #     print ('comment', mediaId)
-    #     try:
-    #         service.retrive_comments(mediaId)
-    #     except Exception as ex:
-    #         pass
 
 
