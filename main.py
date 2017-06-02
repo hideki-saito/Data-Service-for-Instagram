@@ -107,7 +107,7 @@ class Instagram_DataService():
 
     def get_followers(self):
         '''
-        get info per follower as a json format and store into followers collection of mongodb.
+        Get info per follower as a json format and store into followers collection of mongodb.
         '''
         follower_collection = self.db.followers
 
@@ -123,7 +123,7 @@ class Instagram_DataService():
 
     def get_followings(self):
         '''
-            get info per following as a json format and store into followings collection of mongodb.
+        Get info per following as a json format and store into followings collection of mongodb.
         '''
 
         following_collection  = self.db.followings
@@ -142,7 +142,7 @@ class Instagram_DataService():
         '''
         :param user_id: pk of user in instagram
 
-         get posts as a json format and store into posts collection of mongodb. And then for every posts, get comments
+         Get posts as a json format and store into posts collection of mongodb. And then for every posts, get comments
          and store into comments collection.
 
         '''
@@ -164,7 +164,8 @@ class Instagram_DataService():
     def retrive_comments(self, media_id):
         '''
         :param media_id: pk of post in instagram
-        get comments and store into comments collection.
+
+        Get comments and store into comments collection.
         '''
         comment_collection = self.db.comments
 
